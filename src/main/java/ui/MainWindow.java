@@ -80,7 +80,14 @@ public class MainWindow extends JFrame {
                     ScanResult r=worker.get();currentRoot=r.root();
                     layout.tree.setRoot(currentRoot);layout.table.showFolder(currentRoot);
                     layout.usage.update(r.bytes(),r.files(),r.folders());
-                    layout.progress.status.setText("Done — "+SizeFormatter.format(r.bytes())+" — Errors: "+r.errors());
+                   layout.progress.status.setText(
+        "Done — "
+        + SizeFormatter.format(r.bytes())
+        + " — Skipped: "
+        + r.skipped()
+        + " — Errors: "
+        + r.errors()
+);
                 }catch(Exception ex){ErrorDialog.show(this,ex.getMessage());}
                 finally{layout.progress.bar.setIndeterminate(false);}
             }

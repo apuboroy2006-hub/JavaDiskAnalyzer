@@ -1,5 +1,6 @@
 package scanner;
 
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -22,34 +23,27 @@ public class DirectoryWalker {
             Consumer<Path> progress,
             BooleanSupplier cancelled) {
 
-        // Stop pressed?
-        if (cancelled.getAsBoolean()) {
-            return new FolderInfo(
-                dir.getFileName() == null
-                    ? dir.toString()
-                    : dir.getFileName().toString(),
-                dir
-            );
-        }
-
         FolderInfo info = new FolderInfo(
-            dir.getFileName() == null
-                ? dir.toString()
-                : dir.getFileName().toString(),
-            dir
+                dir.getFileName() == null
+                        ? dir.toString()
+                        : dir.getFileName().toString(),
+                dir
         );
 
-        try (var s = Files.list(dir)) {
+        if (cancelled.getAsBoolean()) {
+            return info;
+        }
 
-            s.sorted(
-                Comparator.comparing(
-                    p -> p.getFileName()
-                         .toString()
-                         .toLowerCase()
-                )
+        try (var stream = Files.list(dir)) {
+
+            stream.sorted(
+                    Comparator.comparing(
+                            p -> p.getFileName()
+                                    .toString()
+                                    .toLowerCase()
+                    )
             ).forEach(p -> {
 
-                // Stop immediately before processing next item
                 if (cancelled.getAsBoolean()) {
                     return;
                 }
@@ -58,15 +52,10 @@ public class DirectoryWalker {
 
                     if (Files.isDirectory(p)) {
 
-                        // Check again before entering subfolder
-                        if (cancelled.getAsBoolean()) {
-                            return;
-                        }
-
                         FolderInfo child = build(
-                            p,
-                            progress,
-                            cancelled
+                                p,
+                                progress,
+                                cancelled
                         );
 
                         if (cancelled.getAsBoolean()) {
@@ -74,18 +63,11 @@ public class DirectoryWalker {
                         }
 
                         info.addChild(child);
-                        info.addSize(
-                            child.getTotalSize()
-                        );
-
+                        info.addSize(child.getTotalSize());
                         info.addFolder();
                         stats.folder();
 
                     } else if (Files.isRegularFile(p)) {
-
-                        if (cancelled.getAsBoolean()) {
-                            return;
-                        }
 
                         long size = Files.size(p);
 
@@ -95,18 +77,55 @@ public class DirectoryWalker {
                         stats.file(size);
 
                         progress.accept(p);
+
+                    } else {
+
+                        // Could not determine file or directory
+                        if (!cancelled.getAsBoolean()) {
+                            stats.addSkipped();
+                        }
+                    }
+
+                } catch (AccessDeniedException e) {
+
+                    // Permission denied = skipped
+                    if (!cancelled.getAsBoolean()) {
+                        stats.addSkipped();
+                    }
+
+                } catch (SecurityException e) {
+
+                    // Security restriction = skipped
+                    if (!cancelled.getAsBoolean()) {
+                        stats.addSkipped();
                     }
 
                 } catch (Exception e) {
 
+                    // Unexpected filesystem problem = real error
                     if (!cancelled.getAsBoolean()) {
                         stats.error();
                     }
                 }
             });
 
+        } catch (AccessDeniedException e) {
+
+            // Cannot enter directory
+            if (!cancelled.getAsBoolean()) {
+                stats.addSkipped();
+            }
+
+        } catch (SecurityException e) {
+
+            // Security restriction
+            if (!cancelled.getAsBoolean()) {
+                stats.addSkipped();
+            }
+
         } catch (Exception e) {
 
+            // Unexpected directory error
             if (!cancelled.getAsBoolean()) {
                 stats.error();
             }

@@ -1,6 +1,9 @@
 package scanner;
 
-import model.*;
+import model.FolderInfo;
+import model.ScanResult;
+import model.ScanStatistics;
+
 import java.nio.file.Path;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -12,21 +15,22 @@ public class ScanTask {
             Consumer<Path> progress,
             BooleanSupplier cancelled) {
 
-        ScanStatistics s = new ScanStatistics();
+        ScanStatistics stats = new ScanStatistics();
 
-        FolderInfo f = new FolderScanner().scan(
-            root,
-            s,
-            progress,
-            cancelled
+        FolderInfo folder = new FolderScanner().scan(
+                root,
+                stats,
+                progress,
+                cancelled
         );
 
         return new ScanResult(
-            f,
-            s.files(),
-            s.folders(),
-            s.bytes(),
-            s.errors()
+                folder,
+                stats.files(),
+                stats.folders(),
+                stats.bytes(),
+                stats.errors(),
+                stats.skipped()
         );
     }
 }
