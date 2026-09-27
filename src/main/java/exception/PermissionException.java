@@ -1,0 +1,1 @@
+package exception; public class PermissionException extends Exception { public PermissionException(String m){super(m);} }

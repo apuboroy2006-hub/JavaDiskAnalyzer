@@ -1,0 +1,1 @@
+package exception; public class FileAccessException extends Exception { public FileAccessException(String m,Throwable t){super(m,t);} }

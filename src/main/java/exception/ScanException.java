@@ -1,0 +1,1 @@
+package exception; public class ScanException extends Exception { public ScanException(String m){super(m);} public ScanException(String m,Throwable t){super(m,t);} }
