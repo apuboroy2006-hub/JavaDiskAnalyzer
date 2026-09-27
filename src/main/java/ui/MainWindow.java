@@ -1,14 +1,27 @@
 package ui;
-import javax.swing.*;
-import java.awt.*;
-import java.nio.file.*;
-import java.awt.event.*;
-import model.*;
-import service.*;
-import ui.dialogs.*;
+import java.awt.Dimension;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingWorker;
+
+import model.FolderInfo;
+import model.ScanResult;
+import service.ExportService;
+import service.ScanService;
+import service.SearchService;
+import ui.dialogs.ErrorDialog;
+import ui.dialogs.ExportDialog;
 import ui.layout.MainLayout;
-import utils.SizeFormatter;
 import utils.FileUtils;
+import utils.SizeFormatter;
 import worker.ScanWorker;
 
 public class MainWindow extends JFrame {
@@ -75,13 +88,83 @@ public class MainWindow extends JFrame {
         worker.execute();
     }
 
-    private void search(){
-        if(currentRoot==null||layout.toolbar.search.getText().isBlank())return;
-        var results=new SearchService().search(currentRoot.getPath(),layout.toolbar.search.getText());
-        JOptionPane.showMessageDialog(this,
-            results.isEmpty()?"No matches.":String.join("\n",results.stream().limit(50).map(Path::toString).toList()),
-            "Search Results ("+results.size()+")",JOptionPane.INFORMATION_MESSAGE);
+    private void search() {
+
+    if (currentRoot == null) {
+        ErrorDialog.show(this, "Scan a folder first.");
+        return;
     }
+
+    String query = layout.toolbar.search.getText().trim();
+
+    if (query.isBlank()) {
+        ErrorDialog.show(this, "Enter something to search.");
+        return;
+    }
+
+    SearchService searchService = new SearchService();
+
+    var results = searchService.search(
+            currentRoot.getPath(),
+            query
+    );
+
+    if (results.isEmpty()) {
+
+        JOptionPane.showMessageDialog(
+                this,
+                "No matches found for:\n" + query,
+                "Search Results (0)",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+
+        return;
+    }
+
+    StringBuilder message = new StringBuilder();
+
+    int displayLimit = Math.min(results.size(), 100);
+
+    for (int i = 0; i < displayLimit; i++) {
+
+        Path path = results.get(i);
+
+        String type = Files.isDirectory(path)
+                ? "[Folder]"
+                : "[File]";
+
+        message.append(type)
+               .append("  ")
+               .append(path)
+               .append("\n");
+    }
+
+    if (results.size() > 100) {
+
+        message.append("\n")
+               .append("Showing first 100 results out of ")
+               .append(results.size())
+               .append(" matches.");
+    }
+
+    JTextArea area = new JTextArea(message.toString());
+
+    area.setEditable(false);
+    area.setLineWrap(false);
+
+    JScrollPane scrollPane = new JScrollPane(area);
+
+    scrollPane.setPreferredSize(
+            new Dimension(850, 500)
+    );
+
+    JOptionPane.showMessageDialog(
+            this,
+            scrollPane,
+            "Search Results (" + results.size() + ")",
+            JOptionPane.INFORMATION_MESSAGE
+    );
+}
 
     private void exportReport(){
         if(currentRoot==null){ErrorDialog.show(this,"Scan a folder first.");return;}
