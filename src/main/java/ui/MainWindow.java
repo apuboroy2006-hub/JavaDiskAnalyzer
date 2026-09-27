@@ -95,7 +95,7 @@ public class MainWindow extends JFrame {
         worker.execute();
     }
 
-    private void search() {
+   private void search() {
 
     if (currentRoot == null) {
         ErrorDialog.show(this, "Scan a folder first.");
@@ -141,17 +141,17 @@ public class MainWindow extends JFrame {
                 : "[File]";
 
         message.append(type)
-               .append("  ")
-               .append(path)
-               .append("\n");
+                .append(" ")
+                .append(path)
+                .append("\n");
     }
 
     if (results.size() > 100) {
 
         message.append("\n")
-               .append("Showing first 100 results out of ")
-               .append(results.size())
-               .append(" matches.");
+                .append("Showing first 100 results out of ")
+                .append(results.size())
+                .append(" matches.");
     }
 
     JTextArea area = new JTextArea(message.toString());
